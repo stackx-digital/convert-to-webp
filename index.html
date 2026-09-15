@@ -398,7 +398,7 @@ footer a{color:var(--purple);}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
 <script>
 // ===================== STATE =====================
 const state = {
@@ -601,8 +601,10 @@ async function runTool(tool) {
       a.className='btn-dl'; a.href=URL.createObjectURL(blob); a.download=outName; a.title='Download '+outName; a.textContent='⬇';
       itemEl?.insertBefore(a,itemEl.querySelector('.btn-rm'));
     } catch(e){
-      if(statEl){statEl.className='fstatus s-err';statEl.textContent='ralat';}
+      const msg=(e&&e.message)?e.message:String(e);
+      if(statEl){statEl.className='fstatus s-err';statEl.textContent='ralat';statEl.title=msg;}
       if(itemEl)itemEl.classList.add('error');
+      if(metaEl) metaEl.innerHTML=fmtSize(item.origSize)+' — <span style="color:var(--red)">'+msg+'</span>';
       console.error('Ralat proses fail:', item.file.name, e);
     }
   }
@@ -650,10 +652,15 @@ document.getElementById('go-pdfcompress').addEventListener('click',()=>runTool('
 async function toDecodableBlob(file){
   if(!isHeicFile(file)) return file;
   if(typeof heic2any === 'undefined'){
-    throw new Error('Pustaka HEIC gagal dimuat (semak sambungan internet)');
+    throw new Error('Pustaka heic2any gagal dimuat dari CDN — semak sambungan internet / adblocker, refresh page');
   }
-  const out = await heic2any({ blob:file, toType:'image/jpeg', quality:0.92 });
-  return Array.isArray(out) ? out[0] : out;
+  try{
+    const out = await heic2any({ blob:file, toType:'image/jpeg', quality:0.92 });
+    return Array.isArray(out) ? out[0] : out;
+  }catch(err){
+    const detail=(err&&err.message)?err.message:String(err);
+    throw new Error('Gagal nyahkod HEIC: '+detail);
+  }
 }
 
 // ===================== IMAGE HELPERS =====================
